@@ -14,7 +14,7 @@ import zwoasi as asi
 import sys
 import os
 from astropy.io import fits
-from cameraconnect import *
+from cameraconnect import camera
 
 # Defining the function we'll use to take images and their helper functions!
 # YOU WILL NEED to redefine the filepath.
@@ -44,7 +44,11 @@ def imagesetting(exposure, gain, camera):
     """
     print("Changing exposure time.")
     camera.set_control_value(asi.ASI_EXPOSURE, exposure)
+    print("-----")
+    print("Successfully set exposure time.")
     camera.set_control_value(asi.ASI_GAIN, gain)
+    print("-----")
+    print("Successfully set gain value.")
     settings = camera.get_control_values()
     print(f"Exposure time is now {settings['Exposure']} microseconds, {settings['Exposure']/1000000} seconds.")
     print(f"Gain is now {settings['Gain']}.")
@@ -76,8 +80,8 @@ def eightimage(name, camera):
 
 # Now, let's actually use this and take an 8-bit mono image!
 
-cam_1 = camconnect() # In all honesty, I don't remember what this is here. And can't test or retry it without a camera.
-takepic(1000,  4.736763, "firstattach", camera=cam_1)
+#cam_1 = camconnect() # In all honesty, I don't remember what this is here. And can't test or retry it without a camera.
+takepic(500000, 56, "101925-sat", camera=camera)
 
 
 # Ignore my code scraps below!
