@@ -1,4 +1,5 @@
 
+
 import serial
 import serial.tools.list_ports
 from datetime import datetime
@@ -86,15 +87,10 @@ def gotoAZM_ALT(AZM,ALT):
     print("azmAlt inside gotoAZM_ALT  :",  AZM, ALT)
     # time.sleep(4)
     return azmAlt
-def polaris_align_RA_DEC(RA,DEC):
+def sync_RA_DEC(RA,DEC):
     align_command=bytes('S' + (RA) + ',' + (DEC),'utf-8')
     return align_command
-    def azm_alt_precise_decimal():
-        a=nexstarComm(getAZM_ALT_PRECISE)
-        azimuth_decimal=float(a[0])
-        altitude_decimal=float(a[1])
-        return azimuth_decimal,altitude_decimal
-
+    
 #Get Position Commands
 getRA_DEC = bytes('E','utf-8')
 getRA_DEC_PRECISE = bytes('e','utf-8')
