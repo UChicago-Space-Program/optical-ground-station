@@ -166,11 +166,12 @@ class ZemaxMeasurement():
             correlation_list.append(x[i]/y[i])
         plt.plot(t, correlation_list)
         plt.xlabel("Time [s]")
-        plt.ylabel("Percentage difference between detectors")
-        plt.title(f"{title} at {self.degree} degrees pointing error")
+        plt.ylabel("Ratio of centroids")
+        plt.title(f"{title} at {self.degree} degrees pointing error", fontsize=12, fontweight='bold')
 
 
-data = ZemaxMeasurement(path=r"\\wsl.localhost\Ubuntu\home\jipa2004\optical-ground-station\Zemax\Zemax_PAT_0.05_Degree.csv")
+data_02 = ZemaxMeasurement(path=r"\\wsl.localhost\Ubuntu\home\jipa2004\optical-ground-station\Zemax\Zemax_PAT_0.2_Degree.csv")
+data_005 = ZemaxMeasurement(path=r"\\wsl.localhost\Ubuntu\home\jipa2004\optical-ground-station\Zemax\Zemax_PAT_0.05_Degree.csv")
 
 def plot_beam_paths(data):
     data.plot2Dtotime(data.collimator0_X, data.collimator0_Y, data.t, "Collimator 0")
@@ -184,7 +185,7 @@ def plot_centroids(data):
     h2 = data.plot2D(data.collimator0_centroid, data.t, "Collimator 0 centroid", ax=ax)
     h3 = data.plot2D(data.collimator1_centroid, data.t, "Collimator 1 centroid", ax=ax)
 
-    ax.set_title(f"{data.degree} Degree Error", fontsize=12, fontweight='bold', loc='center')
+    ax.set_title(f"Centroids at {data.degree} Degree Error", fontsize=12, fontweight='bold', loc='center')
     ax.legend(handles=[h1, h2, h3], loc="upper right", frameon=True)
 
     ax.grid(True)
@@ -192,11 +193,16 @@ def plot_centroids(data):
     plt.show()
 
 def plot_correlations(data):
-    data.correlation(data.trackingcameraCentroid, data.collimator0_centroid, data.t, "Percentage difference between tracking camera and collimator 0 centroid")
+    data.correlation(data.trackingcameraCentroid, data.collimator0_centroid, data.t, "Tracking camera and collimator 0 centroid correlation")
     plt.show()
-    data.correlation(data.trackingcameraCentroid, data.collimator1_centroid, data.t, "Percentage difference between tracking camera and collimator 1 centroid")
+    data.correlation(data.trackingcameraCentroid, data.collimator1_centroid, data.t, "Tracking camera and collimator 0 centroid correlation")
     plt.show()
 
-plot_beam_paths(data)
-plot_centroids(data)
-plot_correlations(data)
+plot_beam_paths(data_02)
+plot_beam_paths(data_005)
+
+plot_centroids(data_02)
+plot_correlations(data_02)
+
+plot_centroids(data_005)
+plot_correlations(data_005)

@@ -1,3 +1,5 @@
+import numpy as np
+
 class Pixel:
     """
     Pixel class used to support the image class.
@@ -9,6 +11,8 @@ class Pixel:
         self.x_pos = x
         self.y_pos = y
         self.incluster = False
+        self.isjupyter = False # Attribute to track if a pixel is jupiter based on RA&Dec
+        # Add RA/Dec attribute and RA/Dec tracking method
 
     def set_isincluster(self, bool_statement: bool):
         self.incluster = bool_statement
