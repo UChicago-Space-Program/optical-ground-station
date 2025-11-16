@@ -1,6 +1,8 @@
 import numpy as np
 import math
 
+# add comment
+
 def truncated_standard_normal():
     x = np.random.normal(0, 1)
     while abs(x) > 3:
