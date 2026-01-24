@@ -1,3 +1,5 @@
 __pycache__/
 __pycache__/
 Camera\ Control/camera_env/*
+Camera\ Control/pulse_env/*
+.*
