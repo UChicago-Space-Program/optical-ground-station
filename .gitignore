@@ -3,5 +3,5 @@ __pycache__/
 Camera\ Control/camera_env/*
 Camera\ Control/pulse_env/*
 .*
-.DS_Store
+Camera\ Control/.DS_Store
 Camera\ Control/.*
