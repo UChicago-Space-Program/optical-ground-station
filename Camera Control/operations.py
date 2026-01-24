@@ -50,7 +50,7 @@ logger(head, data, name)
 
 
 #header = "times"
-w#ith open('timelogTesJUPYTER.csv', 'w', newline='', encoding='utf8') as csvfile:
+#with open('timelogTesJUPYTER.csv', 'w', newline='', encoding='utf8') as csvfile:
  #   writer = csv.writer(csvfile)
   #  writer.writerow(header)
   #  for t in logged_time:
