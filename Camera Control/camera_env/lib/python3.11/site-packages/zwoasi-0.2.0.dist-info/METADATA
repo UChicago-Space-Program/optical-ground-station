@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: zwoasi
+Version: 0.2.0
+Summary: Python binding for the ZWO ASI v2 library.
+Author-email: Steve Marple <s.marple@lancaster.ac.uk>
+License: MIT
+Project-URL: Homepage, https://github.com/python-zwoasi/python-zwoasi
+Keywords: zwo,astronomy,camera,driver
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.7
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+License-File: AUTHORS.rst
+Requires-Dist: numpy (>=1.7)
+
+zwoasi
+==========
+
+A python binding to the ZWO ASI version 2 library.
+
