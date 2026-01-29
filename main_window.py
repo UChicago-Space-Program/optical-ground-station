@@ -15,6 +15,7 @@ import shutil
 from telemetry_page import TelemetryPage
 from data_plotter_page import DataPlotterPage
 from command_center_page import CommandCenterPage
+from camera_control_page import CameraControlPage
 from constants import MAX_DATA_POINTS, MAX_TABLE_ROWS, LIVE_DATA_SOURCES, ARCHIVE_SOURCE_PREFIX
 
 
@@ -135,12 +136,12 @@ class MainWindow(QMainWindow):
         # Instantiate page widgets
         self.telemetry_page = TelemetryPage()
         self.data_plotter_page = DataPlotterPage(main_window=self)
+        self.camera_control_page = CameraControlPage(main_window=self)
         self.command_center_page = CommandCenterPage()
         # Add instances to stacked widget
         self.pages.addWidget(self.telemetry_page)
         self.pages.addWidget(self.data_plotter_page)
-        # Add placeholder page for Telescope Controls for now
-        self.pages.addWidget(self.create_placeholder_page("Telescope Controls Page"))
+        self.pages.addWidget(self.camera_control_page)
         self.pages.addWidget(self.command_center_page)
 
         content_layout.addWidget(sidebar_container)
