@@ -67,7 +67,7 @@ def eightimage(name, camera, folder):
     print('Capturing a single 8-bit mono image...')
 
     # Filepath, CHANGE THIS!
-    save_dir = "/Users/ashleyashiku/Desktop/PULSE-A/" + folder + "/"
+    save_dir = os.path.join(".", folder)
     os.makedirs(save_dir, exist_ok=True)
 
     camera.set_image_type(asi.ASI_IMG_RAW8)
@@ -91,7 +91,7 @@ def video(duration, camera):
     The purpose of this code is to take a video with a camera for the duration (in seconds) 
     indicated.
     """
-    save_dir = "/Users/ashleyashiku/Desktop/PULSE-A/videotest/"
+    save_dir = os.path.join(".", "videotest")
     os.makedirs(save_dir, exist_ok=True)
 
     #camera.default_timeout = (duration*1000) + 500
