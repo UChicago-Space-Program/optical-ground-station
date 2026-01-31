@@ -1,0 +1,138 @@
+"""
+The purpose of this code is to take images.
+
+This code was written and compiled by Ashley Ashiku, telescope engineer, for the PULSE-A project. This code utilizes Python wrappers written by Steve Marple, 2017 
+(search python-zwoasi on GitHub) around C commands for ZWO ASI cameras from the software development kit.
+
+Last updated July 9th, 2025
+
+Correspondence/Questions:
+aashiku@uchicago.edu
+"""
+# imports needed
+import zwoasi as asi
+import time
+import sys
+import os
+from astropy.io import fits
+from cameraconnect import camera
+
+# Defining the function we'll use to take images and their helper functions!
+# YOU WILL NEED to redefine the filepath.
+
+def takepic(exposure, gain, name, camera, folder, talk):
+    """"
+    This main function will get the image taken for you with the specific exposure time and gain you specify.
+
+    Inputs:
+        exposure: int, exposure time (micro seconds, 10^-6 seconds)
+        gain: float, camera gain
+        name: name of the camera file you want to save
+        camera: name of the camera you're using
+    """
+    imagesetting(exposure, gain, camera, talk)
+    logTime = eightimage(name, camera, folder)
+    return logTime
+
+
+def imagesetting(exposure, gain, camera, talk=True):
+    """
+    This helper function will set the exposure time and gain of the camera, as well as print out the new values so you know it worked.
+
+    Inputs:
+        exposure: int, exposure time, in MICROSECONDS (10e-6)
+        gain: int, number of counts per electron
+
+    """
+    if talk: print("Changing exposure time.")
+    camera.set_control_value(asi.ASI_EXPOSURE, exposure)
+    if talk: print("-----")
+    if talk: print("Successfully set exposure time.")
+    camera.set_control_value(asi.ASI_GAIN, gain)
+    if talk: print("-----")
+    if talk: print("Successfully set gain value.")
+    settings = camera.get_control_values()
+    if talk: print(f"Exposure time is now {settings['Exposure']} microseconds, {settings['Exposure']/1000000} seconds.")
+    if talk: print(f"Gain is now {settings['Gain']}.")
+
+def eightimage(name, camera, folder):
+    """
+    This helper function will take in a file name, take the image, and, most importantly, save it as FITS file.
+
+    Inputs:
+        name: string, name of fits file you are saving
+        camera: name of the camera you're using
+        folder: string, name of folder images saved into
+    """
+    print('Capturing a single 8-bit mono image...')
+
+    # Filepath, CHANGE THIS!
+    save_dir = "/Users/ashleyashiku/Desktop/PULSE-A/" + folder + "/"
+    os.makedirs(save_dir, exist_ok=True)
+
+    camera.set_image_type(asi.ASI_IMG_RAW8)
+    curTime = time.time()
+    #timelog.append(curTime)
+    image = camera.capture()
+    print(f'image taken. trust me on it. ')
+
+    # dpecify image name
+    imagename = name + ".fits"
+    filename = os.path.join(save_dir,imagename)
+    fits.writeto(filename, image, overwrite=True)
+
+    print(f"image should now be saved in {filename}. go look!")
+    return curTime
+
+def video(duration, camera):
+    """
+    NOT WORKING
+    
+    The purpose of this code is to take a video with a camera for the duration (in seconds) 
+    indicated.
+    """
+    save_dir = "/Users/ashleyashiku/Desktop/PULSE-A/videotest/"
+    os.makedirs(save_dir, exist_ok=True)
+
+    #camera.default_timeout = (duration*1000) + 500
+    filename = 'image_video_color.jpg'
+
+    camera.start_video_capture()
+
+    print("Starting the video as we speak...")
+
+    camera.set_image_type(asi.ASI_IMG_RAW16)
+    camera.capture_video_frame(filename=filename)
+    time.sleep(duration)
+    camera.stop_video_capture()
+    camera.stop_exposure()
+    print("Aaaand video done!")
+    print('Saved to %s' % filename)
+
+    #camera.get_video_data()
+
+# Now, let's actually use this and take an 8-bit mono image!
+
+#cam_1 = camconnect() # In all honesty, I don't remember what this is here. And can't test or retry it without a camera.
+
+"""
+Working code starts here.
+"""
+
+#takepic(50, 1, "helloworld", camera=camera, talk=False)
+#video(5, camera=camera)
+
+"""
+Ends here.
+"""
+
+# Ignore my code scraps below!
+
+#print("Changing exposure time.")
+#camera.set_control_value(asi.ASI_EXPOSURE, 10000000)
+#camera.set_control_value(asi.ASI_GAIN, 4)
+#settings = camera.get_control_values()
+#print(f"Exposure time is now {settings['Exposure']} microseconds, {settings['Exposure']/1000000} seconds.")
+#print(f"Gain is now {settings['Gain']}.")
+#get_camera_info = asi.ASISetControlValue(0, ASI_EXPOSURE, 10000, ASI_FALSE)
+#print(get_camera_info)
