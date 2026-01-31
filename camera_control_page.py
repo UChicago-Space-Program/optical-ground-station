@@ -87,34 +87,9 @@ class CameraWorker(QThread):
 
         except ImportError as e:
             self.error.emit(f"Failed to import camera modules: {e}\n\nRunning in simulation mode...")
-            # Simulation mode for testing without hardware
-            self._run_simulation(time_log, acq_log)
 
         except Exception as e:
             self.error.emit(f"Camera error: {e}")
-
-    def _run_simulation(self, time_log, acq_log):
-        """Run a simulated acquisition for testing without camera hardware."""
-        import time
-        import random
-
-        for i in range(self.n):
-            if not self._is_running:
-                self.progress.emit(i, self.n, "Simulation stopped by user.")
-                break
-
-            self.progress.emit(i + 1, self.n, f"[SIM] Capturing image {i + 1} of {self.n}...")
-            time.sleep(0.2)  # Simulate capture time
-
-            log_time = time.time()
-            acq = random.choice([True, False])  # Random acquisition result
-
-            time_log.append(log_time)
-            acq_log.append(acq)
-
-            self.image_taken.emit(i, log_time, acq)
-
-        self.finished.emit(time_log, acq_log)
 
 
 class CameraControlPage(QWidget):
