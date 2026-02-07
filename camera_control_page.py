@@ -29,7 +29,12 @@ class CameraWorker(QThread):
     progress = pyqtSignal(int, int, str)  # (current_image, total_images, message)
     image_taken = pyqtSignal(int, float, bool)  # (image_num, time, acquired)
     finished = pyqtSignal(list, list)  # (time_log, acq_log)
-    error = pyqtSignal(str)
+    error = pyqtSignal(str, str)  # (error_type, error_message) for granular handling
+    warning = pyqtSignal(str)  # Non-fatal warnings
+
+    # Retry configuration
+    MAX_RETRIES = 3
+    RETRY_DELAY_SEC = 2.0
 
     def __init__(self, exp, gain, n, label, folder, cal=None):
         super().__init__()
@@ -45,8 +50,61 @@ class CameraWorker(QThread):
         """Request the worker to stop."""
         self._is_running = False
 
+    def _capture_with_retry(self, takepic_func, camera, i_label, max_retries=None):
+        """
+        Attempt to capture an image with retry logic for transient errors.
+        
+        Args:
+            takepic_func: The takepic function to call
+            camera: Camera object
+            i_label: Image label
+            max_retries: Number of retries (defaults to self.MAX_RETRIES)
+            
+        Returns:
+            tuple: (timestamp, filepath) from takepic
+            
+        Raises:
+            Exception: If all retries fail
+        """
+        if max_retries is None:
+            max_retries = self.MAX_RETRIES
+            
+        last_exception = None
+        
+        for attempt in range(max_retries + 1):
+            try:
+                return takepic_func(self.exp, self.gain, i_label, camera, self.folder, talk=False)
+            except Exception as e:
+                last_exception = e
+                error_type = type(e).__name__
+                error_msg = str(e).lower()
+                
+                # Check if this is a retryable error
+                is_disconnected = 'disconnected' in error_msg or 'removed' in error_msg
+                is_timeout = 'timeout' in error_msg
+                
+                if is_disconnected:
+                    # Camera disconnected - don't retry, fail immediately
+                    raise
+                
+                if attempt < max_retries:
+                    retry_msg = f"Attempt {attempt + 1} failed ({error_type}). Retrying in {self.RETRY_DELAY_SEC}s..."
+                    self.warning.emit(retry_msg)
+                    
+                    # Wait before retry
+                    import time
+                    time.sleep(self.RETRY_DELAY_SEC)
+                else:
+                    # All retries exhausted
+                    raise
+        
+        # Should not reach here, but just in case
+        raise last_exception
+
     def run(self):
-        """Execute the camera acquisition loop."""
+        """Execute the camera acquisition loop with granular error handling."""
+        import time as time_module
+        
         time_log = []
         acq_log = []
 
@@ -60,7 +118,15 @@ class CameraWorker(QThread):
         try:
             # Try to import camera modules
             from cameraconnect import camera
-            from camerapicture import takepic
+            from camerapicture import (
+                takepic, 
+                CameraError, 
+                CameraDisconnectedError,
+                CameraSettingsError, 
+                CameraCaptureError,
+                CameraTimeoutError,
+                ImageSaveError
+            )
             from acqClean import threshold
 
             for i in range(self.n):
@@ -71,25 +137,62 @@ class CameraWorker(QThread):
                 self.progress.emit(i + 1, self.n, f"Capturing image {i + 1} of {self.n}...")
 
                 i_label = f"{self.label}{i}"
-                log_time = takepic(self.exp, self.gain, i_label, camera, self.folder, talk=False)
-                time_log.append(log_time)
+                
+                try:
+                    # Use retry logic for capture
+                    log_time, filepath = self._capture_with_retry(takepic, camera, i_label)
+                    time_log.append(log_time)
 
-                # Check for acquisition if calibration data provided
-                if cal_bool and biaspath and darkpath:
-                    acq = threshold(i_label, biaspath, darkpath, thres, cal_bool)
-                else:
-                    acq = False  # No calibration, can't determine acquisition
-                acq_log.append(acq)
+                    # Check for acquisition using threshold on raw (or calibrated) image
+                    if cal_bool and biaspath and darkpath:
+                        acq = threshold(filepath, biaspath, darkpath, thres, cal=True)
+                    else:
+                        acq = threshold(filepath, threshold=thres, cal=False)
+                    acq_log.append(acq)
 
-                self.image_taken.emit(i, log_time, acq)
+                    self.image_taken.emit(i, log_time, acq)
+                    
+                except CameraDisconnectedError as e:
+                    self.error.emit("DISCONNECTED", str(e))
+                    # Save partial results before stopping
+                    if time_log:
+                        self.finished.emit(time_log, acq_log)
+                    return
+                    
+                except CameraTimeoutError as e:
+                    self.error.emit("TIMEOUT", str(e))
+                    # Save partial results
+                    if time_log:
+                        self.finished.emit(time_log, acq_log)
+                    return
+                    
+                except CameraSettingsError as e:
+                    self.error.emit("SETTINGS", str(e))
+                    return
+                    
+                except ImageSaveError as e:
+                    # Image captured but couldn't save - log warning and continue
+                    self.warning.emit(f"Image {i} captured but save failed: {e}")
+                    time_log.append(time_module.time())  # Use current time as fallback
+                    acq_log.append(False)
+                    continue
+                    
+                except CameraCaptureError as e:
+                    # Capture failed after retries
+                    self.error.emit("CAPTURE", str(e))
+                    if time_log:
+                        self.finished.emit(time_log, acq_log)
+                    return
 
             self.finished.emit(time_log, acq_log)
 
         except ImportError as e:
-            self.error.emit(f"Failed to import camera modules: {e}\n\nRunning in simulation mode...")
+            self.error.emit("IMPORT", f"Failed to import camera modules: {e}\n\nRunning in simulation mode...")
+            # Fall back to simulation mode
+            self._run_simulation(time_log, acq_log)
 
         except Exception as e:
-            self.error.emit(f"Camera error: {e}")
+            self.error.emit("UNKNOWN", f"Unexpected error: {e}")
 
 
 class CameraControlPage(QWidget):
@@ -329,7 +432,9 @@ class CameraControlPage(QWidget):
         folder_layout = QHBoxLayout(folder_widget)
         folder_layout.setContentsMargins(0, 0, 0, 0)
         folder_layout.setSpacing(8)
-        self.folder_input = QLineEdit()
+        default_output_dir = os.path.join(os.path.dirname(__file__), 'camera_output')
+        os.makedirs(default_output_dir, exist_ok=True)
+        self.folder_input = QLineEdit(default_output_dir)
         self.folder_input.setPlaceholderText("Select output folder...")
         self.folder_input.setToolTip("Folder where FITS images will be saved")
         self.folder_input.setStyleSheet(input_style)
@@ -460,6 +565,7 @@ class CameraControlPage(QWidget):
         self.worker.image_taken.connect(self._on_image_taken)
         self.worker.finished.connect(self._on_finished)
         self.worker.error.connect(self._on_error)
+        self.worker.warning.connect(self._on_warning)
         self.worker.start()
 
     def stop_acquisition(self):
@@ -553,11 +659,132 @@ class CameraControlPage(QWidget):
         # Auto-save log
         self._auto_save_log()
 
-    def _on_error(self, error_msg):
-        """Handle errors from worker."""
-        self.status_message.setText(error_msg)
-        self.status_message.setStyleSheet("color: orange;")
-        # Don't stop - simulation mode continues
+    def _on_error(self, error_type, error_msg):
+        """Handle errors from worker with granular error types."""
+        # Define error-specific responses
+        error_configs = {
+            "DISCONNECTED": {
+                "status": "DISCONNECTED",
+                "color": "#f44336",  # Red
+                "status_style": """
+                    QLabel {
+                        background-color: #b71c1c;
+                        color: #ff5252;
+                        border: 3px solid #ff5252;
+                        border-radius: 10px;
+                        padding: 20px;
+                        min-height: 60px;
+                    }
+                """,
+                "action": "Check USB connection and reconnect camera.",
+                "stop": True
+            },
+            "TIMEOUT": {
+                "status": "TIMEOUT",
+                "color": "#ff9800",  # Orange
+                "status_style": """
+                    QLabel {
+                        background-color: #e65100;
+                        color: #ffb74d;
+                        border: 3px solid #ffb74d;
+                        border-radius: 10px;
+                        padding: 20px;
+                        min-height: 60px;
+                    }
+                """,
+                "action": "Try reducing exposure time.",
+                "stop": True
+            },
+            "SETTINGS": {
+                "status": "ERROR",
+                "color": "#f44336",
+                "status_style": """
+                    QLabel {
+                        background-color: #b71c1c;
+                        color: #ff5252;
+                        border: 3px solid #ff5252;
+                        border-radius: 10px;
+                        padding: 20px;
+                        min-height: 60px;
+                    }
+                """,
+                "action": "Check camera settings (exposure/gain values).",
+                "stop": True
+            },
+            "CAPTURE": {
+                "status": "CAPTURE FAILED",
+                "color": "#f44336",
+                "status_style": """
+                    QLabel {
+                        background-color: #b71c1c;
+                        color: #ff5252;
+                        border: 3px solid #ff5252;
+                        border-radius: 10px;
+                        padding: 20px;
+                        min-height: 60px;
+                    }
+                """,
+                "action": "Capture failed after retries. Check camera.",
+                "stop": True
+            },
+            "IMPORT": {
+                "status": "SIMULATION",
+                "color": "#ff9800",  # Orange
+                "status_style": """
+                    QLabel {
+                        background-color: #e65100;
+                        color: #ffb74d;
+                        border: 3px solid #ffb74d;
+                        border-radius: 10px;
+                        padding: 20px;
+                        min-height: 60px;
+                    }
+                """,
+                "action": "Camera modules not found. Running simulation.",
+                "stop": False  # Continue with simulation
+            },
+            "UNKNOWN": {
+                "status": "ERROR",
+                "color": "#f44336",
+                "status_style": """
+                    QLabel {
+                        background-color: #b71c1c;
+                        color: #ff5252;
+                        border: 3px solid #ff5252;
+                        border-radius: 10px;
+                        padding: 20px;
+                        min-height: 60px;
+                    }
+                """,
+                "action": "An unexpected error occurred.",
+                "stop": True
+            }
+        }
+        
+        config = error_configs.get(error_type, error_configs["UNKNOWN"])
+        
+        # Update status indicator
+        self.status_label.setText(config["status"])
+        self.status_label.setStyleSheet(config["status_style"])
+        
+        # Update status message with details
+        full_message = f"{config['action']}\n\nDetails: {error_msg}"
+        self.status_message.setText(full_message)
+        self.status_message.setStyleSheet(f"color: {config['color']};")
+        
+        # Stop acquisition if needed
+        if config["stop"]:
+            self._set_running_state(False)
+            # Auto-save partial results
+            if self.time_log:
+                self._auto_save_log()
+
+    def _on_warning(self, warning_msg):
+        """Handle non-fatal warnings from worker."""
+        # Append warning to status without stopping
+        current_text = self.status_message.text()
+        self.status_message.setText(f"{current_text}\n⚠ {warning_msg}")
+        self.status_message.setStyleSheet("color: #ffb74d;")  # Orange/amber
 
     def _auto_save_log(self):
         """Automatically save the log to CSV after acquisition."""

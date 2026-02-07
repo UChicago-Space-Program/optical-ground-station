@@ -23,7 +23,11 @@ import time
 #logging.getLogger().setLevel(logging.CRITICAL)
 
 # Load ZWOASI SDK, the library of C commands that you downloaded. Replace the filepath to suite your own computer!
-sdk_filename = './ASI_linux_mac_SDK_V1.41/lib/mac/libASICamera2.dylib'
+# Platform-specific library paths:
+#   macOS:        lib/mac/libASICamera2.dylib
+#   Linux 64-bit: lib/x64/libASICamera2.so
+#   Linux 32-bit: lib/x86/libASICamera2.so
+sdk_filename = './ASI_linux_mac_SDK_V1.41/lib/mac_arm64/libASICamera2.dylib'
 asi.init(sdk_filename)
 
 # Manually plug the ZWO camera into your own laptop using a USB connector and any converters necessary.

@@ -29,10 +29,14 @@ def takepic(exposure, gain, name, camera, folder, talk):
         gain: float, camera gain
         name: name of the camera file you want to save
         camera: name of the camera you're using
+        folder: string, path to folder where images are saved
+
+    Returns:
+        tuple: (logTime, filepath) - timestamp and full path to saved FITS file
     """
     imagesetting(exposure, gain, camera, talk)
-    logTime = eightimage(name, camera, folder)
-    return logTime
+    logTime, filepath = eightimage(name, camera, folder)
+    return logTime, filepath
 
 
 def imagesetting(exposure, gain, camera, talk=True):
@@ -62,27 +66,28 @@ def eightimage(name, camera, folder):
     Inputs:
         name: string, name of fits file you are saving
         camera: name of the camera you're using
-        folder: string, name of folder images saved into
+        folder: string, path to folder where images are saved
+
+    Returns:
+        tuple: (curTime, filename) - timestamp and full path to saved FITS file
     """
     print('Capturing a single 8-bit mono image...')
 
-    # Filepath, CHANGE THIS!
-    save_dir = "/Users/ashleyashiku/Desktop/PULSE-A/" + folder + "/"
+    save_dir = folder
     os.makedirs(save_dir, exist_ok=True)
 
     camera.set_image_type(asi.ASI_IMG_RAW8)
     curTime = time.time()
-    #timelog.append(curTime)
     image = camera.capture()
     print(f'image taken. trust me on it. ')
 
-    # dpecify image name
+    # specify image name
     imagename = name + ".fits"
-    filename = os.path.join(save_dir,imagename)
+    filename = os.path.join(save_dir, imagename)
     fits.writeto(filename, image, overwrite=True)
 
     print(f"image should now be saved in {filename}. go look!")
-    return curTime
+    return curTime, filename
 
 def video(duration, camera):
     """

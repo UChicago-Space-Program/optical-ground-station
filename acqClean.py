@@ -13,24 +13,25 @@ def imageRead(imagepath):
     countvalues = imagedata.flatten()
     return countvalues
 
-def threshold(imagepath, biaspath, darkpath, threshold = 30, cal = False):
+def threshold(imagepath, biaspath=None, darkpath=None, threshold = 30, cal = False):
     """
     The purpose of this function is to check whether a signal above a certain threshold was detected. 
     This includes a very simple calibration (bias subtraction)
     Input:
         imagepath: imagepath
+        biaspath: path to bias frame (required if cal=True)
+        darkpath: path to dark frame (required if cal=True)
         threshold: threshold counts
         cal: whether to subtract calibration (bias) frame
     """
     # reading image
     imageCount = imageRead(imagepath)
-    biasCount = imageRead(biaspath)
-    darkCount = imageRead(darkpath)
 
     # calibrating image
     if cal:
-       counts = imageCount - biasCount - darkCount
-    
+        biasCount = imageRead(biaspath)
+        darkCount = imageRead(darkpath)
+        counts = imageCount - biasCount - darkCount
     else:
         counts = imageCount
 
