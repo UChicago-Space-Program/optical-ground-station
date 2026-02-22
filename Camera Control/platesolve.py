@@ -1,19 +1,13 @@
 # file for taking an image, retrieving the solved coordinates from ASTAP, and sending it to the telescope
 from astropy.io import fits
-import matplotlib.pyplot as plt
 from twirl import find_peaks
 import numpy as np
 import pandas as pd
 from astroquery.astrometry_net import AstrometryNet
 from astropy.wcs import WCS
 from astropy.wcs.utils import proj_plane_pixel_scales
-from twirl.geometry import sparsify
-from photutils.aperture import CircularAperture
-from twirl import gaia_radecs
-from twirl.geometry import sparsify
-from astropy.coordinates import SkyCoord
-from astropy import units as u
-from astropy.coordinates import Angle
+
+
 
 def platesolve(imagepath, starcam = True):
     """ Currently hardcoded for calibration files. Star = true, tracking = false"""
