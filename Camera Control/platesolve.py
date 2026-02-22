@@ -6,8 +6,7 @@ import pandas as pd
 from astroquery.astrometry_net import AstrometryNet
 from astropy.wcs import WCS
 from astropy.wcs.utils import proj_plane_pixel_scales
-
-
+from camerapicture import *
 
 def platesolve(imagepath, starcam = True):
     """ Currently hardcoded for calibration files. Star = true, tracking = false"""
@@ -59,6 +58,16 @@ def platesolve(imagepath, starcam = True):
     dec = center.dec.value
     ra = center.ra.value
 
-    return center
+    return ra, dec
 
 
+def usePlatesolve(exptime, imagename):
+    """
+    input:
+        exptime = exposure time, (int), micro seconds
+        imagename = name of image to be saved, (string)
+    """
+    takepic(exptime, 20, imagename, camera, "starcamera", talk=True)
+    ra, dec =  platesolve(imagename)
+
+    return ra, dec
