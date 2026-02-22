@@ -56,6 +56,9 @@ def platesolve(imagepath, starcam = True):
     centerP = frame/2
     center = WCS(wcs_header).pixel_to_world(centerP[0], centerP[1])
 
+    dec = center.dec.value
+    ra = center.ra.value
+
     return center
 
 
