@@ -54,6 +54,7 @@ def platesolve(imagepath, starcam = True):
     frame = np.array([width, height])
     centerP = frame/2
     center = WCS(wcs_header).pixel_to_world(centerP[0], centerP[1])
+    centerICRS = center.transform_to('icrs') # transform to ICRS coordinate system
 
     dec = center.dec.value
     ra = center.ra.value
