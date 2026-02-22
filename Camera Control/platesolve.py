@@ -1,1 +1,59 @@
 # file for taking an image, retrieving the solved coordinates from ASTAP, and sending it to the telescope
+from astropy.io import fits
+import matplotlib.pyplot as plt
+from twirl import find_peaks
+import numpy as np
+import pandas as pd
+from astroquery.astrometry_net import AstrometryNet
+from astropy.wcs import WCS
+from astropy.wcs.utils import proj_plane_pixel_scales
+from twirl.geometry import sparsify
+from photutils.aperture import CircularAperture
+from twirl import gaia_radecs
+from twirl.geometry import sparsify
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from astropy.coordinates import Angle
+
+def platesolve(imagepath, starcam = True):
+    """ Currently hardcoded for calibration files. Star = true, tracking = false"""
+    image = fits.open('/Users/ashleyashiku/Desktop/PULSE-A/' + imagepath + '.fits')  
+    data = image[0].data
+
+    # pull out peaks
+    xy = find_peaks(data)[0:10]
+    x = np.array(xy[:,0])
+    y = np.array(xy[:,1])
+
+    rX = []
+    rY = []
+    for i in range(len(xy)):
+        rX.append(int(np.round(x[i])))
+        rY.append(int(np.round(y[i])))
+
+    flux_val = data[rY, rX]
+    sources = np.array([x, y, flux_val])
+    source_list = pd.DataFrame(sources.T, columns = ['x', 'y', 'flux_val'])
+    source_list.sort_values('flux_val', ascending = True)
+
+    # pass into platesolving
+    ast = AstrometryNet()
+    ast.api_key = 'cgiokceqsveywcin'
+
+    if starcam:
+        width = 1280        # star camera image width, pixels
+        height = 960       # star camera image height, pixels
+    else:
+        width = 2048        # tracking camera image width, pixels
+        height = 2064       # tracking camera image height, pixels 
+
+    wcs_header = ast.solve_from_source_list(source_list['x'], source_list['y'], width, height, solve_timeout=120)
+
+    # find image center pixel
+    frame = np.array([width, height])
+    centerP = frame/2
+    center = WCS(wcs_header).pixel_to_world(centerP[0], centerP[1])
+
+    return center
+
+
