@@ -12,8 +12,16 @@ from astropy.wcs.utils import proj_plane_pixel_scales
 def platesolve(imagepath, starcam = True):
     """ Currently hardcoded for calibration files. Star = true, tracking = false"""
     image = fits.open('/Users/ashleyashiku/Desktop/PULSE-A/' + imagepath + '.fits')  
-    data = image[0].data
+    rawdata = image[0].data
 
+    dark_F = fits.open('/Users/ashleyashiku/Desktop/PULSE-A/starcamera/DARKFRAME.fits')
+    dark = dark_F[0].data
+    bias_F = fits.open('/Users/ashleyashiku/Desktop/PULSE-A/starcamera/BIASFRAME.fits')
+    bias = bias_F[0].data
+    flat_F = fits.open('/Users/ashleyashiku/Desktop/PULSE-A/starcamera/FLATFRAME3.fits')
+    flat = flat_F[0].data
+
+    data = (rawdata - bias - (dark - bias))/flat
     # pull out peaks
     xy = find_peaks(data)[0:10]
     x = np.array(xy[:,0])
